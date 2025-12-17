@@ -120,7 +120,7 @@ public class Main {
             System.out.println("\n\n=== Часть 6: Сериализация (Задание 9) ===");
             Log lnForComp = new Log(Math.E);
             Exp expForComp = new Exp();
-            Composition lnExp = new Composition(lnForComp, expForComp);
+            Composition lnExp = new Composition(expForComp, lnForComp); //исправлено 
 
             System.out.println("Табулирование функции ln(exp(x)) = x на [0, 10] с 11 точками...");
             TabulatedFunction tabLnExp = TabulatedFunctions.tabulate(lnExp, 0, 10, 11);
@@ -168,90 +168,45 @@ public class Main {
                 System.out.println();
             }
 
-            System.out.println("\n2. Сериализация через Externalizable");
-            File serFile2 = new File("externalizable_func.ser");
+            System.out.println("\n2. Сериализация через Externalizable (LinkedListTabulatedFunction)");
+            File serFile2 = new File("externalizable_linkedlist.ser");
 
-            System.out.println("(Для Externalizable требуется отдельная реализация класса)");
-            System.out.println("Создание простой Externalizable реализации...");
-
-            class SimpleExternalizableFunc implements Externalizable {
-                private double[] xValues;
-                private double[] yValues;
-
-                public SimpleExternalizableFunc() {}
-
-                public SimpleExternalizableFunc(TabulatedFunction func) {
-                    int count = func.getPointsCount();
-                    xValues = new double[count];
-                    yValues = new double[count];
-                    for (int i = 0; i < count; i++) {
-                        FunctionPoint point = func.getPoint(i);
-                        xValues[i] = point.getX();
-                        yValues[i] = point.getY();
-                    }
-                }
-
-                @Override
-                public void writeExternal(ObjectOutput out) throws IOException {
-                    out.writeInt(xValues.length);
-                    for (int i = 0; i < xValues.length; i++) {
-                        out.writeDouble(xValues[i]);
-                        out.writeDouble(yValues[i]);
-                    }
-                }
-
-                @Override
-                public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-                    int count = in.readInt();
-                    xValues = new double[count];
-                    yValues = new double[count];
-                    for (int i = 0; i < count; i++) {
-                        xValues[i] = in.readDouble();
-                        yValues[i] = in.readDouble();
-                    }
-                }
-
-                public int getPointsCount() { return xValues.length; }
-                public double getFunctionValue(double x) {
-                    for (int i = 0; i < xValues.length - 1; i++) {
-                        if (x >= xValues[i] - 1e-10 && x <= xValues[i+1] + 1e-10) {
-                            double t = (x - xValues[i]) / (xValues[i+1] - xValues[i]);
-                            return yValues[i] + (yValues[i+1] - yValues[i]) * t;
-                        }
-                    }
-                    return Double.NaN;
-                }
+            FunctionPoint[] pointsArray = new FunctionPoint[11];
+            for (int i = 0; i <= 10; i++) {
+                double x = i;
+                double y = x; // ln(exp(x)) = x
+                pointsArray[i] = new FunctionPoint(x, y);
             }
 
-            SimpleExternalizableFunc extFunc = new SimpleExternalizableFunc(tabLnExp);
+            LinkedListTabulatedFunction linkedListFunc = new LinkedListTabulatedFunction(pointsArray);
 
             try (ObjectOutputStream oos = new ObjectOutputStream(
                     new FileOutputStream(serFile2))) {
-                oos.writeObject(extFunc);
+                oos.writeObject(linkedListFunc);
                 System.out.println("Создан файл: " + serFile2.getName());
                 System.out.println("Размер файла: " + serFile2.length() + " байт");
             }
 
-            SimpleExternalizableFunc deserialized2;
+            LinkedListTabulatedFunction deserializedLinkedList;
             try (ObjectInputStream ois = new ObjectInputStream(
                     new FileInputStream(serFile2))) {
-                deserialized2 = (SimpleExternalizableFunc) ois.readObject();
+                deserializedLinkedList = (LinkedListTabulatedFunction) ois.readObject();
             }
 
-            System.out.println("\nПроверка корректности десериализации (Externalizable):");
+            System.out.println("\nПроверка LinkedListTabulatedFunction (Externalizable):");
             System.out.println("  x\t\tОригинал\tДесериал.\tСовпадает?");
             System.out.println("--------------------------------------------------------");
-            boolean allMatch2 = true;
+            boolean allMatchLinkedList = true;
             for (int i = 0; i <= 10; i++) {
                 double x = i;
-                double orig = tabLnExp.getFunctionValue(x);
-                double deser = deserialized2.getFunctionValue(x);
+                double orig = linkedListFunc.getFunctionValue(x);
+                double deser = deserializedLinkedList.getFunctionValue(x);
                 boolean match = Math.abs(orig - deser) < 1e-10;
-                if (!match) allMatch2 = false;
+                if (!match) allMatchLinkedList = false;
                 System.out.printf("%6.1f\t%12.6f\t%12.6f\t%10s%n",
                         x, orig, deser, match ? "✓" : "✗");
             }
-            System.out.println("Все значения совпадают: " + (allMatch2 ? "ДА" : "НЕТ"));
+            System.out.println("Все значения совпадают: " + (allMatchLinkedList ? "ДА" : "НЕТ"));
 
             System.out.println("\nАнализ содержимого Externalizable файла:");
             System.out.println("Первые 100 байт файла (hex):");

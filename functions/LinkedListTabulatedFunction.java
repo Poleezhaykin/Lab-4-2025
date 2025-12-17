@@ -1,10 +1,9 @@
 package functions;
 
-import java.io.Serializable;
+import java.io.*;
 
-public class LinkedListTabulatedFunction implements TabulatedFunction, Serializable {
+public class LinkedListTabulatedFunction implements TabulatedFunction, Externalizable {
     private static final long serialVersionUID = 3L;
-
     protected class FunctionNode implements Serializable {
         private static final long serialVersionUID = 4L;
         FunctionPoint point;
@@ -346,5 +345,37 @@ public class LinkedListTabulatedFunction implements TabulatedFunction, Serializa
 
         sb.append("]");
         return sb.toString();
+    }
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeInt(pointsCount);
+
+        FunctionNode current = head.next;
+        while (current != head) {
+            out.writeDouble(current.point.getX());
+            out.writeDouble(current.point.getY());
+            current = current.next;
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        head = new FunctionNode();
+        head.prev = head;
+        head.next = head;
+        pointsCount = 0;
+        lastAccessedNode = head;
+        lastAccessedIndex = -1;
+
+        int count = in.readInt();
+        for (int i = 0; i < count; i++) {
+            double x = in.readDouble();
+            double y = in.readDouble();
+            try {
+                addPoint(new FunctionPoint(x, y));
+            } catch (InappropriateFunctionPointException e) {
+                throw new IOException("Ошибка при чтении функции", e);
+            }
+        }
     }
 }
