@@ -178,19 +178,19 @@ public class ArrayTabulatedFunction implements TabulatedFunction, Serializable {
         if (x < getLeftDomainBorder() - EPSILON || x > getRightDomainBorder() + EPSILON) {
             return Double.NaN;
         }
-        
         for (int i = 0; i < pointsCount; i++) {
             if (Math.abs(points[i].getX() - x) < EPSILON) {
                 return points[i].getY();
             }
         }
-
         for (int i = 0; i < pointsCount - 1; i++) {
             double x1 = points[i].getX();
             double x2 = points[i + 1].getX();
-            double y1 = points[i].getY();
-            double y2 = points[i + 1].getY();
-            return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+            if (x >= x1 - EPSILON && x <= x2 + EPSILON) {  //исправлено: добавлена проверка попадания в интервал перед return
+                double y1 = points[i].getY();
+                double y2 = points[i + 1].getY();
+                return y1 + (y2 - y1) * (x - x1) / (x2 - x1);
+            }
         }
 
         return Double.NaN;
